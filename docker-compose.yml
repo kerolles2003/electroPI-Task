@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: electro-pi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: electro
+      POSTGRES_PASSWORD: electro
+      POSTGRES_DB: electro_pi
+    ports:
+      # Host 5433 -> container 5432 to avoid clashing with a native
+      # PostgreSQL install that may already own host port 5432.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U electro -d electro_pi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./apps/backend
+    container_name: electro-pi-backend
+    restart: unless-stopped
+    env_file:
+      - ./apps/backend/.env
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./apps/frontend
+    container_name: electro-pi-frontend
+    restart: unless-stopped
+    env_file:
+      - ./apps/frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
