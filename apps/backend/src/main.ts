@@ -9,7 +9,9 @@ import { AppModule } from './app.module';
 import { AppLogger } from './common/logger/app-logger.service';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // rawBody: true preserves the exact request bytes (req.rawBody) so the Stripe
+  // webhook can verify signatures; existing JSON parsing is unaffected.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   // Route all framework + application logs through the swappable AppLogger.
   app.useLogger(app.get(AppLogger));
   const logger = new Logger('Bootstrap');

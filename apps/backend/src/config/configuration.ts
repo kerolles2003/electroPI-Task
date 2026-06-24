@@ -1,3 +1,8 @@
+import {
+  DEFAULT_STRIPE_CANCEL_PATH,
+  DEFAULT_STRIPE_SUCCESS_PATH,
+} from '../modules/payments/constants/payment.constant';
+
 /**
  * Typed configuration loader.
  * Values are validated separately in `env.validation.ts`.
@@ -7,6 +12,7 @@ const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default () => {
   const isProduction = (process.env.NODE_ENV ?? 'development') === 'production';
+  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
 
   return {
     nodeEnv: process.env.NODE_ENV ?? 'development',
@@ -38,6 +44,16 @@ export default () => {
         cloudName: process.env.CLOUDINARY_CLOUD_NAME,
         apiKey: process.env.CLOUDINARY_API_KEY,
         apiSecret: process.env.CLOUDINARY_API_SECRET,
+      },
+    },
+    payment: {
+      // Stripe credentials for the active online PaymentProvider. Required only
+      // when an ONLINE checkout/webhook actually runs (validated lazily).
+      stripe: {
+        secretKey: process.env.STRIPE_SECRET_KEY,
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+        successUrl: process.env.STRIPE_SUCCESS_URL ?? `${frontendUrl}${DEFAULT_STRIPE_SUCCESS_PATH}`,
+        cancelUrl: process.env.STRIPE_CANCEL_URL ?? `${frontendUrl}${DEFAULT_STRIPE_CANCEL_PATH}`,
       },
     },
   };
