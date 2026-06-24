@@ -57,6 +57,11 @@ export class PaymentsService {
     await this.payments.markFailedByOrder(orderId);
   }
 
+  /** Marks a COD payment as collected when the order is delivered. No-op for non-COD. */
+  async markCodPaidByOrder(orderId: string): Promise<void> {
+    await this.payments.markCodPaidByOrder(orderId);
+  }
+
   /**
    * Verifies and processes a Stripe webhook.
    *

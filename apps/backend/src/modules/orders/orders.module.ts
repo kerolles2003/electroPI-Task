@@ -5,7 +5,6 @@ import { PaymentsModule } from '../payments/payments.module';
 import { AdminOrdersController } from './admin-orders.controller';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
-import { AddressRepository } from './repositories/address.repository';
 import { OrderRepository } from './repositories/order.repository';
 
 @Module({
@@ -13,6 +12,6 @@ import { OrderRepository } from './repositories/order.repository';
   // PaymentsModule exports PaymentsService (provider abstraction + initiation).
   imports: [CartModule, PaymentsModule],
   controllers: [OrdersController, AdminOrdersController],
-  providers: [OrdersService, OrderRepository, AddressRepository],
+  providers: [OrdersService, OrderRepository],
 })
 export class OrdersModule {}

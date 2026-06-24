@@ -20,7 +20,7 @@ export class OrderMapper {
       totalAmount: Number(order.totalAmount),
       currency: order.currency,
       notes: order.notes,
-      addressId: order.addressId,
+      deliveryAddress: order.deliveryAddress,
       items: order.items.map((item) => this.toItem(item)),
       payment: order.payment ? this.toPayment(order.payment) : null,
       createdAt: order.createdAt,

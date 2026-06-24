@@ -57,7 +57,7 @@ This API uses **HTTP-only cookie authentication**. Two cookies are managed serve
 
 | Cookie | TTL | Purpose |
 |---|---|---|
-| \`access_token\` | 15 min | Sent on every authenticated request |
+| \`access_token\` | 7 days | Sent on every authenticated request |
 | \`refresh_token\` | 7 days | Rotates the token pair via \`POST /auth/refresh\` |
 
 ### Testing in Swagger UI

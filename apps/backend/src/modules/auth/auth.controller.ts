@@ -89,7 +89,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Log in to an existing account',
     description:
-      'Authenticates the user and sets HTTP-only `access_token` (15 min) and `refresh_token` (7 days) cookies.\n\n**Rate limit:** 5 requests / minute.',
+      'Authenticates the user and sets HTTP-only `access_token` (7 days) and `refresh_token` (7 days) cookies.\n\n**Rate limit:** 5 requests / minute.',
   })
   @ApiOkResponse({ type: UserProfileResponse, description: 'Authenticated. Auth cookies set.' })
   @ApiBadRequestResponse({ type: ApiErrorResponse, description: 'Validation error' })

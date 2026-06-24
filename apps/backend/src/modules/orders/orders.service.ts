@@ -28,14 +28,12 @@ import { CheckoutResponse } from './dto/checkout.response';
 import { OrderListResponse } from './dto/order-list.response';
 import { OrderResponse } from './dto/order.response';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { AddressNotFoundException } from './exceptions/address-not-found.exception';
 import { CartEmptyException } from './exceptions/cart-empty.exception';
 import { CheckoutProductUnavailableException } from './exceptions/checkout-product-unavailable.exception';
 import { OrderNotFoundException } from './exceptions/order-not-found.exception';
 import { OrderStatusTransitionException } from './exceptions/order-status-transition.exception';
 import { OrderMapper } from './mappers/order.mapper';
 import { OrderRepository, OrderWithRelations } from './repositories/order.repository';
-import { AddressRepository } from './repositories/address.repository';
 
 const PRISMA_UNIQUE_VIOLATION = 'P2002';
 
@@ -48,18 +46,11 @@ function toMoney(value: number): number {
 export class OrdersService {
   constructor(
     private readonly orders: OrderRepository,
-    private readonly addresses: AddressRepository,
     private readonly cart: CartService,
     private readonly payments: PaymentsService,
   ) {}
 
   async checkout(user: AuthenticatedUser, dto: CheckoutDto): Promise<CheckoutResponse> {
-    // Address must exist and belong to the current user.
-    const address = await this.addresses.findById(dto.addressId);
-    if (!address || address.userId !== user.id) {
-      throw new AddressNotFoundException();
-    }
-
     // Cart must not be empty and all products must still be available.
     const cart = await this.cart.getCart({ userId: user.id });
     if (cart.items.length === 0) {
@@ -79,7 +70,7 @@ export class OrdersService {
     // Create the order, its item snapshots, and the (PENDING) payment atomically.
     const order = await this.createOrderRecord({
       userId: user.id,
-      addressId: address.id,
+      deliveryAddress: dto.deliveryAddress,
       notes: dto.notes,
       cart,
       subtotal,
@@ -172,12 +163,18 @@ export class OrdersService {
     }
 
     const updated = await this.orders.updateStatusByOrderNumber(orderNumber, dto.status);
+
+    // COD payment is collected at the door — mark it paid when the order is delivered.
+    if (dto.status === OrderStatus.DELIVERED) {
+      await this.payments.markCodPaidByOrder(updated.id);
+    }
+
     return OrderMapper.toResponse(updated);
   }
 
   private async createOrderRecord(params: {
     userId: string;
-    addressId: string;
+    deliveryAddress: string;
     notes?: string;
     cart: CartResponse;
     subtotal: number;
@@ -202,7 +199,7 @@ export class OrdersService {
         return await this.orders.create({
           orderNumber,
           user: { connect: { id: params.userId } },
-          address: { connect: { id: params.addressId } },
+          deliveryAddress: params.deliveryAddress,
           status: OrderStatus.PENDING,
           subtotalAmount: new Prisma.Decimal(params.subtotal),
           deliveryFee: new Prisma.Decimal(params.deliveryFee),

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Amber rounded-square background — matches brand primary #D4700A -->
+  <rect width="32" height="32" rx="7" fill="#D4700A"/>
+  <!-- Fork: 3 tines -->
+  <rect x="9"     y="7" width="2.5" height="7" rx="1.25" fill="white"/>
+  <rect x="14.75" y="7" width="2.5" height="7" rx="1.25" fill="white"/>
+  <rect x="20.5"  y="7" width="2.5" height="7" rx="1.25" fill="white"/>
+  <!-- Fork: crossbar connecting tines to handle -->
+  <rect x="9" y="13" width="14" height="2.5" rx="1.25" fill="white"/>
+  <!-- Fork: handle (centred on the middle tine) -->
+  <rect x="14.75" y="15" width="2.5" height="11" rx="1.25" fill="white"/>
+</svg>

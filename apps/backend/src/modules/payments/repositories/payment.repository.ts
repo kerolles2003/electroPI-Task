@@ -37,6 +37,14 @@ export class PaymentRepository {
     });
   }
 
+  /** PENDING COD payment → PAID on delivery. No-op for non-COD or already-PAID payments. */
+  async markCodPaidByOrder(orderId: string): Promise<void> {
+    await this.prisma.payment.updateMany({
+      where: { orderId, method: 'CASH_ON_DELIVERY', status: { not: PaymentStatus.PAID } },
+      data: { status: PaymentStatus.PAID, paidAt: new Date() },
+    });
+  }
+
   /** PENDING → FAILED only. Never downgrades a PAID payment. */
   async markFailed(paymentId: string): Promise<void> {
     await this.prisma.payment.updateMany({

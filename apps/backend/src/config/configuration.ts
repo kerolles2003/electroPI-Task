@@ -7,7 +7,7 @@ import {
  * Typed configuration loader.
  * Values are validated separately in `env.validation.ts`.
  */
-const ACCESS_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const ACCESS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days — keep in sync with JWT_ACCESS_TTL
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default () => {
@@ -25,7 +25,7 @@ export default () => {
       // Validated as required in env.validation.ts — no insecure fallback here.
       accessSecret: process.env.JWT_ACCESS_SECRET,
       refreshSecret: process.env.JWT_REFRESH_SECRET,
-      accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
+      accessTtl: process.env.JWT_ACCESS_TTL ?? '7d',
       refreshTtl: process.env.JWT_REFRESH_TTL ?? '7d',
       // bcrypt work factor — tune per environment (lower in tests to keep them fast).
       bcryptRounds: process.env.BCRYPT_ROUNDS ? Number(process.env.BCRYPT_ROUNDS) : 12,

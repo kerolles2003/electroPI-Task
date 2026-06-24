@@ -133,8 +133,6 @@ model Address {
   country       String
   isDefault     Boolean  @default(false)
 
-  orders        Order[]
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -213,14 +211,13 @@ model CartItem {
 // ---------- Orders ----------
 
 model Order {
-  id             String      @id @default(cuid())
-  orderNumber    String      @unique
-  userId         String
-  user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  addressId      String
-  address        Address     @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  deliveryAddress String
 
-  status         OrderStatus @default(PENDING)
+  status          OrderStatus @default(PENDING)
   subtotalAmount Decimal     @db.Decimal(10, 2)
   deliveryFee    Decimal     @default(0) @db.Decimal(10, 2)
   totalAmount    Decimal     @db.Decimal(10, 2)

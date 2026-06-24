@@ -29,8 +29,8 @@ export class OrderResponse {
   @ApiProperty({ example: 'Leave at the door', nullable: true })
   notes!: string | null;
 
-  @ApiProperty({ example: 'clx0a1b2c3d4e5f6g7h8i9j0k' })
-  addressId!: string;
+  @ApiProperty({ example: '123 Main St, Cairo, Egypt' })
+  deliveryAddress!: string;
 
   @ApiProperty({ type: [OrderItemResponse] })
   items!: OrderItemResponse[];

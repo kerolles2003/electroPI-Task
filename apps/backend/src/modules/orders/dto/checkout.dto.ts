@@ -3,10 +3,11 @@ import { PaymentMethod } from '@prisma/client';
 import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CheckoutDto {
-  @ApiProperty({ example: 'clx0a1b2c3d4e5f6g7h8i9j0k', description: 'Address id (must belong to the user)' })
+  @ApiProperty({ example: '123 Main St, Cairo, Egypt', description: 'Delivery address' })
   @IsString()
   @MinLength(1)
-  addressId!: string;
+  @MaxLength(500)
+  deliveryAddress!: string;
 
   @ApiProperty({ enum: PaymentMethod, example: PaymentMethod.CASH_ON_DELIVERY })
   @IsEnum(PaymentMethod)

@@ -25,6 +25,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Local tooling workspace
+.impeccable/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
