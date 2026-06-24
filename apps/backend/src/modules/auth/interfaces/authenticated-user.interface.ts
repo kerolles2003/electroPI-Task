@@ -2,11 +2,13 @@ import { Role } from '@prisma/client';
 
 /**
  * The minimal identity attached to `request.user` after access-token auth.
+ * `sessionId` maps to Session.id so logout can target the exact session.
  */
 export interface AuthenticatedUser {
   id: string;
   email: string;
   role: Role;
+  sessionId?: string;
 }
 
 /**

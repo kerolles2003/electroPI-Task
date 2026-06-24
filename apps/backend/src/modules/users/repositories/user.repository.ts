@@ -23,29 +23,51 @@ export class UserRepository {
     return this.prisma.user.create({ data });
   }
 
-  /**
-   * Creates a user and persists their initial hashed refresh token atomically.
-   * `buildRefreshToken` receives the created user (for its id) and returns the
-   * hash to store, so registration is all-or-nothing.
-   */
-  createWithRefreshToken(
-    data: Prisma.UserCreateInput,
-    buildRefreshToken: (user: User) => Promise<string>,
-  ): Promise<User> {
-    return this.prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({ data });
-      const hashedRefreshToken = await buildRefreshToken(created);
-      return tx.user.update({
-        where: { id: created.id },
-        data: { hashedRefreshToken },
-      });
+  // ---------- Email verification ----------
+
+  findByEmailVerificationToken(tokenHash: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { emailVerificationToken: tokenHash } });
+  }
+
+  async setEmailVerification(userId: string, tokenHash: string, expiry: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { emailVerificationToken: tokenHash, emailVerificationExpiry: expiry },
     });
   }
 
-  setHashedRefreshToken(id: string, hashedRefreshToken: string | null): Promise<User> {
-    return this.prisma.user.update({
-      where: { id },
-      data: { hashedRefreshToken },
+  async markEmailVerified(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpiry: null,
+      },
+    });
+  }
+
+  // ---------- Password reset ----------
+
+  findByPasswordResetToken(tokenHash: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { passwordResetToken: tokenHash } });
+  }
+
+  async setPasswordReset(userId: string, tokenHash: string, expiry: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordResetToken: tokenHash, passwordResetExpiry: expiry },
+    });
+  }
+
+  async clearPasswordReset(userId: string, newPasswordHash: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash: newPasswordHash,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+      },
     });
   }
 }

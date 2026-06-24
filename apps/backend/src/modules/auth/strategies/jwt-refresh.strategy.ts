@@ -21,13 +21,14 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, JWT_REFRESH_S
   }
 
   // The raw refresh token travels through so the service can verify it
-  // against the bcrypt hash stored on the user row.
+  // against the bcrypt hash stored in the Session row.
   validate(req: Request, payload: JwtPayload): RefreshTokenUser {
     const refreshToken = req?.cookies?.[REFRESH_TOKEN_COOKIE];
     return {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
+      sessionId: payload.sid,
       refreshToken: typeof refreshToken === 'string' ? refreshToken : '',
     };
   }

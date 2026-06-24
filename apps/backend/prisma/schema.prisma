@@ -49,29 +49,74 @@ enum PaymentProvider {
   CASH_ON_DELIVERY
 }
 
+enum AuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  REGISTER_SUCCESS
+  PASSWORD_CHANGED
+  PASSWORD_RESET
+  EMAIL_VERIFIED
+  LOGOUT
+}
+
 // ---------- Identity ----------
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
+  id              String  @id @default(cuid())
+  email           String  @unique
   passwordHash    String
   fullName        String
   phone           String?
-  role            Role      @default(CUSTOMER)
-  preferredLocale Locale    @default(EN)
+  role            Role    @default(CUSTOMER)
+  preferredLocale Locale  @default(EN)
 
-  // Hashed (bcrypt) current refresh token for rotation; null when logged out.
-  // Stored on the user row to avoid a session table (Phase 3 constraint).
-  hashedRefreshToken String?
+  // Email verification — token is SHA-256 of the raw token sent in the email.
+  // Cleared to null once the address is verified.
+  emailVerified           Boolean   @default(false)
+  emailVerificationToken  String?   @unique
+  emailVerificationExpiry DateTime?
 
-  addresses       Address[]
-  cart            Cart?
-  orders          Order[]
+  // Password reset — single-use token, SHA-256-hashed. Cleared after use.
+  passwordResetToken  String?   @unique
+  passwordResetExpiry DateTime?
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  addresses Address[]
+  cart      Cart?
+  orders    Order[]
+  sessions  Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([role])
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hashedToken String   // bcrypt(sha256(refresh_token)) — same pattern as the old hashedRefreshToken
+  userAgent   String?
+  ipAddress   String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Append-only audit trail. userId is optional so failed-login attempts can be
+// recorded even when the email does not correspond to a real user.
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String?
+  action    AuditAction
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Address {
@@ -209,6 +254,7 @@ model OrderItem {
   createdAt     DateTime @default(now())
 
   @@index([orderId])
+  @@index([productId])
 }
 
 // ---------- Payment ----------

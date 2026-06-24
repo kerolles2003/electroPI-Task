@@ -13,6 +13,7 @@ export class UserMapper {
       name: user.fullName,
       role: user.role,
       preferredLocale: user.preferredLocale,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     };
   }
