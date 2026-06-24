@@ -223,7 +223,7 @@ model Payment {
   status         PaymentStatus   @default(UNPAID)
   amount         Decimal         @db.Decimal(10, 2)
   currency       String          @default("USD")
-  transactionRef String?         // Stripe PaymentIntent id; null for COD
+  transactionRef String?         @unique // Stripe session id; null for COD (multiple NULLs allowed)
   paidAt         DateTime?
 
   createdAt      DateTime        @default(now())

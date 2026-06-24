@@ -60,9 +60,10 @@ class EnvironmentVariables {
   @IsString()
   STRIPE_SECRET_KEY?: string;
 
-  @IsOptional()
+  // Required: webhook signature verification must never silently no-op. Boot
+  // fails fast if it is missing so payment confirmations cannot be lost.
   @IsString()
-  STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_WEBHOOK_SECRET!: string;
 
   @IsOptional()
   @IsString()
