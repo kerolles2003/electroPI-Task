@@ -60,6 +60,10 @@ model User {
   role            Role      @default(CUSTOMER)
   preferredLocale Locale    @default(EN)
 
+  // Hashed (bcrypt) current refresh token for rotation; null when logged out.
+  // Stored on the user row to avoid a session table (Phase 3 constraint).
+  hashedRefreshToken String?
+
   addresses       Address[]
   cart            Cart?
   orders          Order[]

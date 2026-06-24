@@ -1,0 +1,1 @@
+- [Project Architecture](project-architecture.md) — Core architecture, module boundaries, and phase state for electro-PI NestJS backend

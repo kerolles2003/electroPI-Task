@@ -1,5 +1,5 @@
-import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
+import { plainToInstance, Type } from 'class-transformer';
+import { IsEnum, IsIn, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
 
 enum NodeEnv {
   Development = 'development',
@@ -9,8 +9,8 @@ enum NodeEnv {
 
 /**
  * Environment contract. Required values fail fast at boot if missing/invalid.
- * Auth and provider secrets are intentionally optional in this phase
- * (their features are not implemented yet).
+ * JWT secrets are required: auth is implemented and must never fall back to a
+ * hardcoded default. Provider secrets remain optional until their features land.
  */
 class EnvironmentVariables {
   @IsOptional()
@@ -18,8 +18,14 @@ class EnvironmentVariables {
   NODE_ENV: NodeEnv = NodeEnv.Development;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   PORT = 3001;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  BCRYPT_ROUNDS = 12;
 
   @IsString()
   DATABASE_URL!: string;
@@ -28,13 +34,15 @@ class EnvironmentVariables {
   @IsString()
   FRONTEND_URL?: string;
 
-  @IsOptional()
   @IsString()
-  JWT_ACCESS_SECRET?: string;
+  JWT_ACCESS_SECRET!: string;
+
+  @IsString()
+  JWT_REFRESH_SECRET!: string;
 
   @IsOptional()
-  @IsString()
-  JWT_REFRESH_SECRET?: string;
+  @IsIn(['lax', 'strict', 'none'])
+  COOKIE_SAMESITE?: 'lax' | 'strict' | 'none';
 
   @IsOptional()
   @IsString()
