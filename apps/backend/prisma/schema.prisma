@@ -1,0 +1,229 @@
+// electro-PI — Prisma schema (frozen Phase 1 domain model).
+// Source of truth: PHASE-1-DOMAIN-MODEL.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum Locale {
+  EN
+  AR
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  ONLINE
+  CASH_ON_DELIVERY
+}
+
+enum PaymentProvider {
+  STRIPE
+  CASH_ON_DELIVERY
+}
+
+// ---------- Identity ----------
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  fullName        String
+  phone           String?
+  role            Role      @default(CUSTOMER)
+  preferredLocale Locale    @default(EN)
+
+  addresses       Address[]
+  cart            Cart?
+  orders          Order[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([role])
+}
+
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  recipientName String
+  phone         String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  area          String?
+  country       String
+  isDefault     Boolean  @default(false)
+
+  orders        Order[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------- Catalog ----------
+
+model Category {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  nameEn    String
+  nameAr    String
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+
+  products  Product[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  slug          String      @unique
+  nameEn        String
+  nameAr        String
+  descriptionEn String
+  descriptionAr String
+  price         Decimal     @db.Decimal(10, 2)
+  imageUrl      String?
+  isAvailable   Boolean     @default(true)
+
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([isAvailable])
+}
+
+// ---------- Cart ----------
+
+model Cart {
+  id         String     @id @default(cuid())
+  userId     String?    @unique
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestToken String?    @unique
+
+  items      CartItem[]
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+}
+
+// ---------- Orders ----------
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  addressId      String
+  address        Address     @relation(fields: [addressId], references: [id], onDelete: Restrict)
+
+  status         OrderStatus @default(PENDING)
+  subtotalAmount Decimal     @db.Decimal(10, 2)
+  deliveryFee    Decimal     @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal     @db.Decimal(10, 2)
+  currency       String      @default("USD")
+  notes          String?
+
+  items          OrderItem[]
+  payment        Payment?
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // Snapshot — preserves history if the product is later edited or deleted.
+  productNameEn String
+  productNameAr String
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  quantity      Int
+  lineTotal     Decimal  @db.Decimal(10, 2)
+
+  createdAt     DateTime @default(now())
+
+  @@index([orderId])
+}
+
+// ---------- Payment ----------
+
+model Payment {
+  id             String          @id @default(cuid())
+  orderId        String          @unique
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  method         PaymentMethod
+  provider       PaymentProvider
+  status         PaymentStatus   @default(UNPAID)
+  amount         Decimal         @db.Decimal(10, 2)
+  currency       String          @default("USD")
+  transactionRef String?         // Stripe PaymentIntent id; null for COD
+  paidAt         DateTime?
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status])
+}
