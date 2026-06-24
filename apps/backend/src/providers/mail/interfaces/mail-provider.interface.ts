@@ -1,9 +1,12 @@
 export const MAIL_PROVIDER = 'MAIL_PROVIDER';
 
 /**
- * Transactional email contract. Implementations (Resend, etc.) are swappable
- * behind the MAIL_PROVIDER token. Kept intentionally minimal; extend per feature.
+ * Domain-level email contract. Each method maps 1-to-1 with a business event.
+ * Implementations (Resend, SendGrid, etc.) are swappable behind the token.
+ * HTML construction lives in templates — never inside implementations.
  */
 export interface MailProvider {
-  sendMail(to: string, subject: string, html: string): Promise<void>;
+  sendVerificationEmail(to: string, name: string, otp: string): Promise<void>;
+  sendPasswordResetEmail(to: string, name: string, resetUrl: string): Promise<void>;
+  sendWelcomeEmail(to: string, name: string): Promise<void>;
 }

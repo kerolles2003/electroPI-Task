@@ -17,7 +17,7 @@ export default () => {
   return {
     nodeEnv: process.env.NODE_ENV ?? 'development',
     port: process.env.PORT ? Number(process.env.PORT) : 3001,
-    frontendUrl: process.env.FRONTEND_URL,
+    frontendUrl,
     database: {
       url: process.env.DATABASE_URL,
     },
@@ -55,6 +55,23 @@ export default () => {
         successUrl: process.env.STRIPE_SUCCESS_URL ?? `${frontendUrl}${DEFAULT_STRIPE_SUCCESS_PATH}`,
         cancelUrl: process.env.STRIPE_CANCEL_URL ?? `${frontendUrl}${DEFAULT_STRIPE_CANCEL_PATH}`,
       },
+    },
+    mail: {
+      // Active provider — must match one of: resend | brevo | local.
+      // Production safety (required credentials) is enforced in env.validation.ts.
+      provider: (process.env.MAIL_PROVIDER ?? 'local') as 'resend' | 'brevo' | 'local',
+      // Resend
+      resendApiKey: process.env.RESEND_API_KEY ?? '',
+      from: process.env.MAIL_FROM ?? 'noreply@electro-pi.com',
+      // Brevo
+      brevo: {
+        apiKey: process.env.BREVO_API_KEY ?? '',
+        senderName: process.env.BREVO_SENDER_NAME ?? 'electro-PI',
+        senderEmail: process.env.BREVO_SENDER_EMAIL ?? 'noreply@electro-pi.com',
+      },
+      // Token TTLs — kept in config so they can be overridden per environment.
+      verificationTokenTtlMs: 24 * 60 * 60 * 1000, // 24 hours
+      passwordResetTokenTtlMs: 60 * 60 * 1000, // 1 hour
     },
   };
 };

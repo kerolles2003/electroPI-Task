@@ -7,13 +7,15 @@ import { verifyEmailTemplate } from '../templates/verify-email.template';
 import { welcomeTemplate } from '../templates/welcome.template';
 
 @Injectable()
-export class ResendMailProvider implements MailProvider {
+export class BrevoMailProvider implements MailProvider {
   private readonly apiKey: string;
-  private readonly from: string;
+  private readonly senderName: string;
+  private readonly senderEmail: string;
 
   constructor(private readonly config: ConfigService) {
-    this.apiKey = this.config.get<string>('mail.resendApiKey') ?? '';
-    this.from = this.config.get<string>('mail.from') ?? 'noreply@electro-pi.com';
+    this.apiKey = this.config.get<string>('mail.brevo.apiKey') ?? '';
+    this.senderName = this.config.get<string>('mail.brevo.senderName') ?? 'electro-PI';
+    this.senderEmail = this.config.get<string>('mail.brevo.senderEmail') ?? 'noreply@electro-pi.com';
   }
 
   sendVerificationEmail(to: string, name: string, otp: string): Promise<void> {
@@ -31,22 +33,27 @@ export class ResendMailProvider implements MailProvider {
   private async send(to: string, subject: string, html: string): Promise<void> {
     if (!this.apiKey) {
       throw new Error(
-        'ResendMailProvider: RESEND_API_KEY is not configured. Use MAIL_PROVIDER=local for development.',
+        'BrevoMailProvider: BREVO_API_KEY is not configured. Use MAIL_PROVIDER=local for development.',
       );
     }
 
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        'api-key': this.apiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from: this.from, to, subject, html }),
+      body: JSON.stringify({
+        sender: { name: this.senderName, email: this.senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
 
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(`Resend API error ${response.status}: ${body}`);
+      throw new Error(`Brevo API error ${response.status}: ${body}`);
     }
   }
 }

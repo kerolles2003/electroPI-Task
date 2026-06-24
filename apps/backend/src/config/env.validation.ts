@@ -1,5 +1,5 @@
 import { plainToInstance, Type } from 'class-transformer';
-import { IsEnum, IsIn, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
+import { IsEmail, IsEnum, IsIn, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
 
 enum NodeEnv {
   Development = 'development',
@@ -65,9 +65,35 @@ class EnvironmentVariables {
   @IsString()
   STRIPE_WEBHOOK_SECRET!: string;
 
+  // ── Mail ─────────────────────────────────────────────────────────────────────
+
+  // Active mail provider. Defaults to 'local' (console logger) in non-prod.
+  @IsOptional()
+  @IsIn(['resend', 'brevo', 'local'])
+  MAIL_PROVIDER?: 'resend' | 'brevo' | 'local';
+
+  // Resend credentials
   @IsOptional()
   @IsString()
   RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEmail()
+  MAIL_FROM?: string;
+
+  // Brevo credentials
+  @IsOptional()
+  @IsString()
+  BREVO_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  BREVO_SENDER_NAME?: string;
+
+  @IsOptional()
+  @IsEmail()
+  BREVO_SENDER_EMAIL?: string;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {
@@ -79,6 +105,30 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
 
   if (errors.length > 0) {
     throw new Error(`Invalid environment configuration:\n${errors.toString()}`);
+  }
+
+  // Production safety: the active mail provider must have its credentials present.
+  // This catch-at-boot prevents silent mail failures in production environments.
+  if (validated.NODE_ENV === NodeEnv.Production) {
+    const provider = validated.MAIL_PROVIDER ?? 'local';
+
+    if (provider === 'resend' && !validated.RESEND_API_KEY) {
+      throw new Error(
+        'RESEND_API_KEY is required when MAIL_PROVIDER=resend in production',
+      );
+    }
+
+    if (provider === 'brevo' && !validated.BREVO_API_KEY) {
+      throw new Error(
+        'BREVO_API_KEY is required when MAIL_PROVIDER=brevo in production',
+      );
+    }
+
+    if (provider === 'local') {
+      throw new Error(
+        'MAIL_PROVIDER=local is not allowed in production. Set MAIL_PROVIDER to resend or brevo.',
+      );
+    }
   }
 
   return validated;
