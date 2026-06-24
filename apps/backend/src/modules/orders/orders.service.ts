@@ -93,6 +93,7 @@ export class OrdersService {
     // Initiate payment with the provider (Stripe creates a checkout session;
     // COD is a no-op). Persist the transaction reference when one is returned.
     let checkoutUrl: string | null = null;
+    let paymentFailed = false;
     try {
       const initiation = await this.payments.initiate(method, {
         orderId: order.id,
@@ -106,17 +107,21 @@ export class OrdersService {
         await this.payments.attachTransactionRef(order.id, initiation.transactionRef);
       }
     } catch {
-      // A payment-provider failure must NOT delete the order. The order stays
-      // PENDING while the payment is recorded as FAILED — the two lifecycles are
-      // independent, so the order remains visible and the failure is explicit.
+      // A payment-provider failure must NOT delete the order or clear the cart.
+      // The order stays PENDING while the payment is recorded as FAILED (the two
+      // lifecycles are independent); the failure is signalled back to the client.
+      paymentFailed = true;
       await this.payments.markFailedByOrder(order.id);
     }
 
-    // Clear the cart only after the order has been created successfully.
-    await this.cart.clearCart({ userId: user.id });
+    // Clear the cart only when payment setup succeeded — a failed payment leaves
+    // the cart intact so the customer can retry checkout.
+    if (!paymentFailed) {
+      await this.cart.clearCart({ userId: user.id });
+    }
 
     const persisted = (await this.orders.findByOrderNumber(order.orderNumber)) ?? order;
-    return { order: OrderMapper.toResponse(persisted), checkoutUrl };
+    return { order: OrderMapper.toResponse(persisted), checkoutUrl, paymentFailed };
   }
 
   async listForUser(user: AuthenticatedUser, query: PaginationQueryDto): Promise<OrderListResponse> {

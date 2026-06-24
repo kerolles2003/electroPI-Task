@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+import { WEBHOOK_SIGNATURE_TOLERANCE_SECONDS } from '../constants/payment.constant';
 import { InvalidWebhookSignatureException } from '../exceptions/invalid-webhook-signature.exception';
 import { StripeWebhookEvent } from '../interfaces/stripe-event.interface';
 
@@ -32,6 +33,17 @@ export class StripeWebhookService {
 
     const matches = signatures.some((candidate) => this.secureCompare(expected, candidate));
     if (!matches) {
+      throw new InvalidWebhookSignatureException();
+    }
+
+    // Replay protection: reject events whose signed timestamp is outside the
+    // tolerance window, even if the signature itself is valid.
+    const eventTimeSeconds = Number(timestamp);
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (
+      !Number.isFinite(eventTimeSeconds) ||
+      Math.abs(nowSeconds - eventTimeSeconds) > WEBHOOK_SIGNATURE_TOLERANCE_SECONDS
+    ) {
       throw new InvalidWebhookSignatureException();
     }
 

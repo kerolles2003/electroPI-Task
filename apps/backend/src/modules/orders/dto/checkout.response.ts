@@ -16,4 +16,13 @@ export class CheckoutResponse {
     description: 'Redirect URL for ONLINE payments; null for cash on delivery',
   })
   checkoutUrl!: string | null;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'True when ONLINE payment setup failed. The order is kept (PENDING) with a ' +
+      'FAILED payment and the cart is preserved so the customer can retry — this ' +
+      'distinguishes a failure from a successful cash-on-delivery checkout.',
+  })
+  paymentFailed!: boolean;
 }

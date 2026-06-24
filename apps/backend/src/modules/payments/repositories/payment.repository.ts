@@ -7,36 +7,48 @@ import { PrismaService } from '../../../prisma/prisma.service';
  * Data-access for post-creation Payment state changes. The Payment row itself is
  * created as part of the Order aggregate (see OrderRepository); this repository
  * owns reference attachment and webhook-driven status transitions.
+ *
+ * Status transitions use conditional `updateMany` so they are atomic and
+ * idempotent: the guard lives in the WHERE clause, so a settled payment is never
+ * overwritten and concurrent/duplicate deliveries converge to one transition.
  */
 @Injectable()
 export class PaymentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   findByTransactionRef(transactionRef: string): Promise<Payment | null> {
-    return this.prisma.payment.findFirst({ where: { transactionRef } });
+    return this.prisma.payment.findUnique({ where: { transactionRef } });
+  }
+
+  /** Resolves a payment via its order's number (Stripe `client_reference_id`). */
+  findByOrderNumber(orderNumber: string): Promise<Payment | null> {
+    return this.prisma.payment.findFirst({ where: { order: { orderNumber } } });
   }
 
   setTransactionRefByOrder(orderId: string, transactionRef: string): Promise<Payment> {
     return this.prisma.payment.update({ where: { orderId }, data: { transactionRef } });
   }
 
-  markPaid(paymentId: string): Promise<Payment> {
-    return this.prisma.payment.update({
-      where: { id: paymentId },
+  /** PENDING/anything-but-PAID → PAID. No-op if already PAID. */
+  async markPaid(paymentId: string): Promise<void> {
+    await this.prisma.payment.updateMany({
+      where: { id: paymentId, status: { not: PaymentStatus.PAID } },
       data: { status: PaymentStatus.PAID, paidAt: new Date() },
     });
   }
 
-  markFailed(paymentId: string): Promise<Payment> {
-    return this.prisma.payment.update({
-      where: { id: paymentId },
+  /** PENDING → FAILED only. Never downgrades a PAID payment. */
+  async markFailed(paymentId: string): Promise<void> {
+    await this.prisma.payment.updateMany({
+      where: { id: paymentId, status: PaymentStatus.PENDING },
       data: { status: PaymentStatus.FAILED },
     });
   }
 
-  markFailedByOrder(orderId: string): Promise<Payment> {
-    return this.prisma.payment.update({
-      where: { orderId },
+  /** PENDING → FAILED for an order's payment only. Never downgrades a PAID payment. */
+  async markFailedByOrder(orderId: string): Promise<void> {
+    await this.prisma.payment.updateMany({
+      where: { orderId, status: PaymentStatus.PENDING },
       data: { status: PaymentStatus.FAILED },
     });
   }
